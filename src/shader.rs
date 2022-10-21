@@ -69,8 +69,6 @@ impl Shader {
                 gl::GetShaderInfoLog(shader, 1024, &mut log_len, v.as_mut_ptr().cast());
                 v.set_len(log_len.try_into().unwrap());
                 panic!("Error: {}", String::from_utf8_lossy(&v));
-            } else {
-                println!("Compiled");
             }
         }
     }
