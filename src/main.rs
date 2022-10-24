@@ -21,13 +21,13 @@ fn main() {
     let mut vao: u32 = 0;
     let mut ebo: u32 = 0;
     let shader;
-    type Vertex = [f32; 3];
+    type Vertex = [f32; 6];
     type TriIndexes = [u32; 3];
     const VERTICES: [Vertex; 4] = [
-        [ 0.5,  0.5, 0.0], 
-        [ 0.5, -0.5, 0.0], 
-        [-0.5, -0.5, 0.0],
-        [-0.5,  0.5, 0.0]
+        [ 0.5,  0.5, 0.0, 1.0, 0.0, 0.0], 
+        [ 0.5, -0.5, 0.0, 0.0, 1.0, 0.0], 
+        [-0.5, -0.5, 0.0, 0.0, 0.0, 1.0],
+        [-0.5,  0.5, 0.0, 1.0, 0.0, 1.0]
     ];
     const INDICES: [TriIndexes; 2] = [
         [0, 1, 3], 
@@ -64,17 +64,27 @@ fn main() {
             gl::STATIC_DRAW
         ); 
 
-        shader.use_shader();
-
+        // Vertex possition array
         gl::VertexAttribPointer(
             0, 
             3, 
             gl::FLOAT, 
             gl::FALSE, 
-            (3 * std::mem::size_of::<f32>()) as gl::types::GLint, 
-            std::ptr::null(),
+            (6 * std::mem::size_of::<f32>()) as gl::types::GLint, 
+            0 as *const _,
         );
-        gl::EnableVertexAttribArray(0);  
+        gl::EnableVertexAttribArray(0);
+
+        // Color position array
+        gl::VertexAttribPointer(
+            1, 
+            3, 
+            gl::FLOAT, 
+            gl::FALSE, 
+            (6 * std::mem::size_of::<f32>()) as gl::types::GLint, 
+            (3 * std::mem::size_of::<f32>()) as *const _,
+        );
+        gl::EnableVertexAttribArray(1);
     }
 
     while !window.should_close() {
