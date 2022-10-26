@@ -21,13 +21,15 @@ fn main() {
     let mut vao: u32 = 0;
     let mut ebo: u32 = 0;
     let shader;
-    type Vertex = [f32; 6];
+    let mut texture1: u32 = 0;
+    let mut texture2: u32 = 0;
+    type Vertex = [f32; 8];
     type TriIndexes = [u32; 3];
     const VERTICES: [Vertex; 4] = [
-        [ 0.5,  0.5, 0.0, 1.0, 0.0, 0.0], 
-        [ 0.5, -0.5, 0.0, 0.0, 1.0, 0.0], 
-        [-0.5, -0.5, 0.0, 0.0, 0.0, 1.0],
-        [-0.5,  0.5, 0.0, 1.0, 0.0, 1.0]
+        [ 0.5,  0.5, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0], 
+        [ 0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0], 
+        [-0.5, -0.5, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+        [-0.5,  0.5, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0]
     ];
     const INDICES: [TriIndexes; 2] = [
         [0, 1, 3], 
@@ -70,7 +72,7 @@ fn main() {
             3, 
             gl::FLOAT, 
             gl::FALSE, 
-            (6 * std::mem::size_of::<f32>()) as gl::types::GLint, 
+            (8 * std::mem::size_of::<f32>()) as gl::types::GLint, 
             0 as *const _,
         );
         gl::EnableVertexAttribArray(0);
@@ -81,10 +83,78 @@ fn main() {
             3, 
             gl::FLOAT, 
             gl::FALSE, 
-            (6 * std::mem::size_of::<f32>()) as gl::types::GLint, 
+            (8 * std::mem::size_of::<f32>()) as gl::types::GLint, 
             (3 * std::mem::size_of::<f32>()) as *const _,
         );
         gl::EnableVertexAttribArray(1);
+
+        gl::VertexAttribPointer(
+            2, 
+            2, 
+            gl::FLOAT, 
+            gl::FALSE, 
+            (8 * std::mem::size_of::<f32>()) as gl::types::GLint,
+            (6 * std::mem::size_of::<f32>()) as *const _,
+        );
+        gl::EnableVertexAttribArray(2);  
+
+
+        // Texture 1
+        gl::GenTextures(1, &mut texture1);
+        // gl::ActiveTexture(gl::TEXTURE0);
+        // gl::ActiveTexture(gl::TEXTURE1);
+        gl::BindTexture(gl::TEXTURE_2D, texture1);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);	
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR_MIPMAP_LINEAR as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+
+        let image = match stb_image::image::load("assets/container.jpeg") {
+            stb_image::image::LoadResult::ImageU8(value) => value,
+            _ => panic!("Failed to load texture"),
+        };
+        gl::TexImage2D(
+            gl::TEXTURE_2D, 
+            0, 
+            gl::RGB as i32, 
+            image.width as i32, 
+            image.height as i32, 
+            0, 
+            gl::RGB, 
+            gl::UNSIGNED_BYTE, 
+            image.data.as_ptr().cast(),
+        );
+        gl::GenerateMipmap(gl::TEXTURE_2D);
+
+        gl::GenTextures(1, &mut texture2);
+        gl::BindTexture(gl::TEXTURE_2D, texture2);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);	
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR_MIPMAP_LINEAR as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+        stb_image::stb_image::bindgen::stbi_set_flip_vertically_on_load(1);
+        let image = match stb_image::image::load("assets/awesomeface.png") {
+            stb_image::image::LoadResult::ImageU8(value) => value,
+            _ => panic!("Failed to load texture"),
+        };
+
+        gl::TexImage2D(
+            gl::TEXTURE_2D, 
+            0, 
+            gl::RGB as i32, 
+            image.width as i32, 
+            image.height as i32, 
+            0, 
+            gl::RGBA, 
+            gl::UNSIGNED_BYTE, 
+            image.data.as_ptr().cast(),
+        );
+        gl::GenerateMipmap(gl::TEXTURE_2D);
+
+        shader.use_shader();
+        shader.set_int("texture1", 0);
+        shader.set_int("texture2", 1);
+
     }
 
     while !window.should_close() {
@@ -99,6 +169,12 @@ fn main() {
             let uniform_name = CString::new("ourColor").expect("Convert to c-string");
             let vertex_color_location = gl::GetUniformLocation(shader.id, uniform_name.as_ptr());
             gl::Clear(gl::COLOR_BUFFER_BIT);
+
+            gl::ActiveTexture(gl::TEXTURE0);
+            gl::BindTexture(gl::TEXTURE_2D, texture1);
+            gl::ActiveTexture(gl::TEXTURE1);
+            gl::BindTexture(gl::TEXTURE_2D, texture2);
+
             shader.use_shader();
             gl::Uniform4f(vertex_color_location, 0.0, green_value, 0.0, 1.0);
             gl::BindVertexArray(vao);

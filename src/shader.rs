@@ -58,6 +58,16 @@ impl Shader {
         }
     }
 
+    pub fn set_int(&self, uniform_name: &str, value: i32) {
+        use std::ffi::CString;
+        let uniform_name = CString::new(uniform_name).expect("Convert to c-string");
+
+        unsafe {
+            let uniform_location = gl::GetUniformLocation(self.id, uniform_name.as_ptr());
+            gl::Uniform1i(uniform_location, value);
+        }
+    }
+
     fn verify_shader(shader: GLuint, verify_flag: gl::types::GLenum) {
         let mut success: i32 = 1;
 
