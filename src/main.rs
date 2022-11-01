@@ -5,6 +5,7 @@ extern crate gl;
 use glfw::{Action, Context, Key};
 use core::mem::size_of_val;
 use learn_opengl::shader::Shader;
+use learn_opengl::camera::{Camera, CameraMovement};
 use ultraviolet::mat::Mat4;
 use ultraviolet::vec::Vec3;
 
@@ -23,6 +24,7 @@ fn main() {
     let mut vao: u32 = 0;
     // let mut ebo: u32 = 0;
     let shader;
+    let mut camera;
     let mut texture1: u32 = 0;
     let mut texture2: u32 = 0;
     type Vertex = [f32; 5];
@@ -97,12 +99,16 @@ fn main() {
     // ];
 
     window.set_key_polling(true);
+    window.set_cursor_pos_polling(true);
+    window.set_scroll_polling(true);
+    window.set_framebuffer_size_polling(true);
     window.make_current();
 
     unsafe {
         gl::Enable(gl::DEPTH_TEST);
 
         shader = Shader::new("src/shaders/vertex.glsl", "src/shaders/fragment.glsl");
+        camera = Camera::new();
         // Set clear color
         gl::ClearColor(0.2, 0.3, 0.3, 1.0);
 
@@ -196,11 +202,27 @@ fn main() {
 
     }
 
+    let mut last_frame: f32 = 0.0;
+    let mut current_frame: f32;
+    let mut delta_time: f32;
+    let mut last_x_pos: f32 = 0.0;
+    let mut last_y_pos: f32 = 0.0;
+    let mut first_mouse_event = true;
+
     while !window.should_close() {
+        unsafe {
+            current_frame = glfw::ffi::glfwGetTime() as f32;
+        }
+        delta_time = current_frame.clone() - last_frame;
+        last_frame = current_frame.clone();
+        camera.process_keyboard_movement(&delta_time);
+
+
         glfw.poll_events();
         for (_, event) in glfw::flush_messages(&events) {
-            handle_window_event(&mut window, event);
+            handle_window_event(&mut window, event, &mut camera, &mut last_x_pos, &mut last_y_pos, &mut first_mouse_event);
         }
+
         unsafe {
             gl::ClearColor(0.2, 0.3, 0.3, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
@@ -212,10 +234,10 @@ fn main() {
 
             shader.use_shader();
 
-            let view = Mat4::from_translation(Vec3::new(0.0, 0.0, -3.0));
+            let view = camera.get_view_matrix();
             let projection = ultraviolet::projection::perspective_gl(
-                45.0_f32.to_radians(),
-                800.0 / 600.0, 
+                camera.zoom.to_radians(),
+                800.0 / 600.0,
                 0.1, 
                 100.0);
             
@@ -248,12 +270,61 @@ fn main() {
     }
 }
 
-fn handle_window_event(window: &mut glfw::Window, event: glfw::WindowEvent) {
+fn handle_window_event(window: &mut glfw::Window, event: glfw::WindowEvent, camera: &mut Camera, last_x_pos: &mut f32, last_y_pos: &mut f32, first_mouse_event: &mut bool) {
     println!("{:?}", event);
     match event {
         glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
             window.set_should_close(true)
         },
+        glfw::WindowEvent::Key(Key::W, _, Action::Press, _) => {
+            camera.start_movement(CameraMovement::Forward)
+        },
+        glfw::WindowEvent::Key(Key::S, _, Action::Press, _) => {
+            camera.start_movement(CameraMovement::Backword)
+        },
+        glfw::WindowEvent::Key(Key::A, _, Action::Press, _) => {
+            camera.start_movement(CameraMovement::Left)
+        },
+        glfw::WindowEvent::Key(Key::D, _, Action::Press, _) => {
+            camera.start_movement(CameraMovement::Right)
+        },
+        glfw::WindowEvent::Key(Key::W, _, Action::Release, _) => {
+            camera.stop_movement(CameraMovement::Forward)
+        },
+        glfw::WindowEvent::Key(Key::S, _, Action::Release, _) => {
+            camera.stop_movement(CameraMovement::Backword)
+        },
+        glfw::WindowEvent::Key(Key::A, _, Action::Release, _) => {
+            camera.stop_movement(CameraMovement::Left)
+        },
+        glfw::WindowEvent::Key(Key::D, _, Action::Release, _) => {
+            camera.stop_movement(CameraMovement::Right)
+        },
+        glfw::WindowEvent::Scroll(_, y_offset) => {
+            camera.process_mouse_scroll(y_offset as f32);
+        },
+        glfw::WindowEvent::CursorPos(x_pos, y_pos) => {
+            let new_x_pos = x_pos as f32;
+            let new_y_pos = y_pos as f32;
+
+            if *first_mouse_event {
+                *last_x_pos = new_x_pos.clone();
+                *last_y_pos = new_y_pos.clone();
+                *first_mouse_event = false;
+            }
+            let x_offset = new_x_pos - *last_x_pos;
+            let y_offset = *last_y_pos - new_y_pos;
+
+            *last_x_pos = new_x_pos.clone();
+            *last_y_pos = new_y_pos.clone();
+
+            camera.process_mouse_movement(x_offset, y_offset);
+        },
+        glfw::WindowEvent::FramebufferSize(width, height) => {
+            unsafe {
+                gl::Viewport(0, 0, width, height);
+            }
+        }
         _ => {},
     }
 }
