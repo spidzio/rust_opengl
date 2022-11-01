@@ -1,4 +1,4 @@
-use gl::types::GLuint;
+use gl::types::{GLuint, GLint};
 use std::fs;
 
 pub struct Shader {
@@ -58,15 +58,27 @@ impl Shader {
         }
     }
 
-    pub fn set_int(&self, uniform_name: &str, value: i32) {
+    fn get_uniform_location(&self, uniform_name: &str) -> GLint {
         use std::ffi::CString;
         let uniform_name = CString::new(uniform_name).expect("Convert to c-string");
-
         unsafe {
-            let uniform_location = gl::GetUniformLocation(self.id, uniform_name.as_ptr());
-            gl::Uniform1i(uniform_location, value);
+            return gl::GetUniformLocation(self.id, uniform_name.as_ptr());
         }
     }
+
+    pub fn set_int(&self, uniform_name: &str, value: i32) {
+        unsafe {
+            gl::Uniform1i(self.get_uniform_location(uniform_name), value);
+        }
+    }
+
+    pub fn set_mat_4(&self, uniform_name: &str, value: ultraviolet::mat::Mat4) {
+        unsafe {
+            gl::UniformMatrix4fv(self.get_uniform_location(uniform_name), 1, gl::FALSE, value.as_ptr());
+        }
+    }
+
+    
 
     fn verify_shader(shader: GLuint, verify_flag: gl::types::GLenum) {
         let mut success: i32 = 1;
