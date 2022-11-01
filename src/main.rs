@@ -227,11 +227,8 @@ fn main() {
             for i in 0..10 {
                 let mut time_value = glfw::ffi::glfwGetTime();
                 if i % 2 == 0 {
-
-                    println!("{:?}", i);
                     time_value = 0.0;
                 }
-                println!("{:?}", time_value);
                 let cube_position = cube_positions[i];
                 let angle: f32 = 20.0 * i as f32;
                 let model = Mat4::from_translation(cube_position)
