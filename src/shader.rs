@@ -78,6 +78,12 @@ impl Shader {
         }
     }
 
+    pub fn set_vec_3(&self, uniform_name: &str, value: ultraviolet::vec::Vec3) {
+        unsafe {
+            gl::Uniform3fv(self.get_uniform_location(uniform_name), 1, value.as_ptr());
+        }
+    }
+
     
 
     fn verify_shader(shader: GLuint, verify_flag: gl::types::GLenum) {
